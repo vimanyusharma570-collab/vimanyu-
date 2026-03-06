@@ -1,0 +1,5 @@
+{
+  "name": "Nexus AI Architecture",
+  "description": "A high-performance dashboard visualizing and managing a multi-layer AI system architecture, featuring real-time Gemini integration and SQLite data persistence.",
+  "requestFramePermissions": []
+}
