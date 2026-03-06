@@ -37,18 +37,42 @@ interface AIInteraction {
 
 interface SystemStatus {
   status: string;
+  version: string;
   uptime: number;
   components: Record<string, string>;
+  metrics: {
+    cpu_usage: string;
+    memory_usage: string;
+    active_agents: number;
+    anomalies_detected: number;
+    model_latency: string;
+    neural_sync?: string;
+  };
+}
+
+interface ArchitectureDesign {
+  version: string;
+  design: {
+    components: Array<{ name: string; service: string; description: string }>;
+    data_flow: string;
+    mlops_pipeline: string[];
+    devops_pipeline: string[];
+    ai_lifecycle: string[];
+    agentic_loop: string[];
+    folder_structure: string[];
+    future_v5: string[];
+  };
 }
 
 export default function App() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [logs, setLogs] = useState<Log[]>([]);
   const [aiHistory, setAiHistory] = useState<AIInteraction[]>([]);
+  const [archDesign, setArchDesign] = useState<ArchitectureDesign | null>(null);
   const [prompt, setPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai' | 'logs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai' | 'logs' | 'architecture'>('dashboard');
 
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -57,15 +81,17 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      const [statusRes, logsRes, historyRes] = await Promise.all([
+      const [statusRes, logsRes, historyRes, archRes] = await Promise.all([
         fetch('/api/status'),
         fetch('/api/logs'),
-        fetch('/api/ai/history')
+        fetch('/api/ai/history'),
+        fetch('/api/architecture')
       ]);
       
       if (statusRes.ok) setStatus(await statusRes.json());
       if (logsRes.ok) setLogs(await logsRes.json());
       if (historyRes.ok) setAiHistory(await historyRes.json());
+      if (archRes.ok) setArchDesign(await archRes.json());
     } catch (error) {
       console.error('Failed to fetch system data:', error);
     }
@@ -138,7 +164,10 @@ export default function App() {
           <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)]">
             <Layers className="text-black w-5 h-5" />
           </div>
-          <span className="hidden md:block font-bold tracking-tight text-lg">NEXUS <span className="text-emerald-500">AI</span></span>
+          <div className="hidden md:block">
+            <span className="font-bold tracking-tight text-lg block leading-none">NEXUS <span className="text-emerald-500">AI</span></span>
+            <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase">Version 4.1</span>
+          </div>
         </div>
 
         <nav className="flex-1 px-3 space-y-1 mt-4">
@@ -147,6 +176,12 @@ export default function App() {
             label="System Dashboard" 
             active={activeTab === 'dashboard'} 
             onClick={() => setActiveTab('dashboard')} 
+          />
+          <NavItem 
+            icon={<ShieldCheck size={20} />} 
+            label="Architecture Design" 
+            active={activeTab === 'architecture'} 
+            onClick={() => setActiveTab('architecture')} 
           />
           <NavItem 
             icon={<Cpu size={20} />} 
@@ -174,8 +209,8 @@ export default function App() {
       <main className="ml-16 md:ml-64 p-4 md:p-8">
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-1">Architecture Overview</h1>
-            <p className="text-zinc-500 text-sm">Monitoring Agentic AI & Google Cloud Infrastructure</p>
+            <h1 className="text-3xl font-bold tracking-tight mb-1">Nexus AI Platform v4.1</h1>
+            <p className="text-zinc-500 text-sm">Neural Core Integration & Autonomous Agentic Control</p>
           </div>
           <div className="flex items-center gap-3">
             <button 
@@ -197,76 +232,219 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6"
+              className="space-y-6"
             >
-              {/* Architecture Components Grid */}
-              <ComponentCard 
-                title="API Gateway" 
-                status={status?.components.gateway || 'unknown'} 
-                icon={<Globe className="text-blue-400" />}
-                description="Traffic routing and security layer"
-                metric="99.9% Uptime"
-              />
-              <ComponentCard 
-                title="AI Processing Layer" 
-                status={status?.components.ai_layer || 'unknown'} 
-                icon={<Cpu className="text-purple-400" />}
-                description="Gemini 3.1 Pro Agentic Core"
-                metric="Active Session"
-              />
-              <ComponentCard 
-                title="Data Storage Layer" 
-                status={status?.components.storage || 'unknown'} 
-                icon={<DbIcon className="text-amber-400" />}
-                description="SQLite Persistence Engine"
-                metric="Healthy"
-              />
-              <ComponentCard 
-                title="MLOps Pipeline" 
-                status={status?.components.mlops || 'unknown'} 
-                icon={<BarChart3 className="text-emerald-400" />}
-                description="Vertex AI Continuous Training"
-                metric="Idle"
-              />
-              <ComponentCard 
-                title="DevOps Pipeline" 
-                status={status?.components.devops || 'unknown'} 
-                icon={<GitBranch className="text-rose-400" />}
-                description="Cloud Run Deployment"
-                metric="v1.0.4-stable"
-              />
-              <ComponentCard 
-                title="Security Layer" 
-                status="active" 
-                icon={<ShieldCheck className="text-cyan-400" />}
-                description="IAM & OAuth Integration"
-                metric="Encrypted"
-              />
+              {/* Metrics Bar */}
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                <MetricCard label="CPU Usage" value={status?.metrics.cpu_usage || '0%'} icon={<Activity size={14} />} />
+                <MetricCard label="Memory" value={status?.metrics.memory_usage || '0GB'} icon={<DbIcon size={14} />} />
+                <MetricCard label="Active Agents" value={status?.metrics.active_agents.toString() || '0'} icon={<Cpu size={14} />} />
+                <MetricCard label="Anomalies" value={status?.metrics.anomalies_detected.toString() || '0'} icon={<AlertCircle size={14} />} color="text-emerald-500" />
+                <MetricCard label="AI Latency" value={status?.metrics.model_latency || '0ms'} icon={<Zap size={14} />} />
+                <MetricCard label="Neural Sync" value={status?.metrics.neural_sync || '0%'} icon={<Layers size={14} />} color="text-purple-500" />
+              </div>
 
-              {/* Recent Activity Mini-Log */}
-              <div className="md:col-span-3 bg-[#121214] border border-white/5 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-bold flex items-center gap-2">
-                    <Terminal size={18} className="text-emerald-500" />
-                    Live System Stream
-                  </h3>
-                  <button onClick={() => setActiveTab('logs')} className="text-xs text-zinc-500 hover:text-white transition-colors">View All Logs</button>
+              {/* Architecture Components Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <ComponentCard 
+                  title="Neural Core Engine" 
+                  status={status?.components.neural_core || 'unknown'} 
+                  icon={<Zap className="text-purple-500" />}
+                  description="Real-time neural synchronization"
+                  metric="Sync: 99.9%"
+                />
+                <ComponentCard 
+                  title="AIOps Engine" 
+                  status={status?.components.aiops || 'unknown'} 
+                  icon={<ShieldCheck className="text-cyan-400" />}
+                  description="Real-time monitoring & self-healing"
+                  metric="Auto-remediation active"
+                />
+                <ComponentCard 
+                  title="Vertex AI Core" 
+                  status={status?.components.vertex_ai || 'unknown'} 
+                  icon={<Cpu className="text-purple-400" />}
+                  description="Transformer-based model serving"
+                  metric="Gemini 3.1 Pro"
+                />
+                <ComponentCard 
+                  title="GKE Cluster" 
+                  status={status?.components.gke || 'unknown'} 
+                  icon={<Globe className="text-blue-400" />}
+                  description="Scalable cloud-native microservices"
+                  metric="16 Nodes / 64 Pods"
+                />
+                <ComponentCard 
+                  title="MLOps Pipeline" 
+                  status={status?.components.mlops || 'unknown'} 
+                  icon={<BarChart3 className="text-emerald-400" />}
+                  description="Continuous training & evaluation"
+                  metric="Pipeline v4.5"
+                />
+                <ComponentCard 
+                  title="DevOps CI/CD" 
+                  status={status?.components.devops || 'unknown'} 
+                  icon={<GitBranch className="text-rose-400" />}
+                  description="Automated GKE deployment"
+                  metric="Build #912 Success"
+                />
+              </div>
+
+              {/* Agentic AI Decision Loop Visualization */}
+              <div className="bg-[#121214] border border-white/5 rounded-2xl p-6">
+                <h3 className="font-bold flex items-center gap-2 mb-8">
+                  <Zap size={18} className="text-amber-500" />
+                  Agentic AI Decision Loop
+                </h3>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative">
+                  <div className="hidden md:block absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-y-1/2 -z-10" />
+                  <LoopStep icon={<Activity />} label="Monitor" description="Ingest logs & telemetry" />
+                  <ChevronRight className="hidden md:block text-zinc-700" />
+                  <LoopStep icon={<BarChart3 />} label="Analyze" description="Transformer-based anomaly detection" />
+                  <ChevronRight className="hidden md:block text-zinc-700" />
+                  <LoopStep icon={<Cpu />} label="Plan" description="Agentic AI reasoning" />
+                  <ChevronRight className="hidden md:block text-zinc-700" />
+                  <LoopStep icon={<Zap />} label="Act" description="Autonomous self-healing action" />
                 </div>
-                <div className="space-y-3 font-mono text-xs">
-                  {logs.slice(0, 5).map((log) => (
-                    <div key={log.id} className="flex items-start gap-4 p-3 rounded-lg bg-white/[0.02] border border-white/5">
-                      <span className="text-zinc-600 shrink-0">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
-                      <span className={`px-2 py-0.5 rounded uppercase text-[10px] font-bold shrink-0 ${
-                        log.level === 'error' ? 'bg-rose-500/20 text-rose-500' : 
-                        log.level === 'success' ? 'bg-emerald-500/20 text-emerald-500' : 
-                        'bg-blue-500/20 text-blue-500'
-                      }`}>
-                        {log.component}
-                      </span>
-                      <span className="text-zinc-400">{log.message}</span>
-                    </div>
-                  ))}
-                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'architecture' && (
+            <motion.div 
+              key="architecture"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+            >
+              <div className="space-y-8">
+                <section>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Layers size={20} className="text-emerald-500" />
+                    System Architecture Components
+                  </h2>
+                  <div className="space-y-4">
+                    {archDesign?.design.components.map((c, i) => (
+                      <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-bold text-emerald-400">{c.name}</h4>
+                          <span className="text-[10px] font-mono text-zinc-500 uppercase">{c.service}</span>
+                        </div>
+                        <p className="text-sm text-zinc-400">{c.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <RefreshCw size={20} className="text-blue-500" />
+                    Data Flow & Microservices
+                  </h2>
+                  <div className="p-6 rounded-xl bg-white/5 border border-white/10 font-mono text-xs leading-relaxed text-zinc-300">
+                    {archDesign?.design.data_flow}
+                  </div>
+                </section>
+              </div>
+
+              <div className="space-y-8">
+                <section>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <BarChart3 size={20} className="text-purple-500" />
+                    MLOps Pipeline (Vertex AI)
+                  </h2>
+                  <div className="space-y-2">
+                    {archDesign?.design.mlops_pipeline.map((step, i) => (
+                      <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                        <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-500 flex items-center justify-center text-[10px] font-bold">{i+1}</div>
+                        <span className="text-sm">{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Activity size={20} className="text-emerald-500" />
+                    AI/ML Model Lifecycle
+                  </h2>
+                  <div className="space-y-2">
+                    {archDesign?.design.ai_lifecycle.map((step, i) => (
+                      <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span className="text-sm text-zinc-300">{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Zap size={20} className="text-amber-500" />
+                    Agentic AI Decision Loop
+                  </h2>
+                  <div className="space-y-2">
+                    {archDesign?.design.agentic_loop.map((step, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/10 text-sm text-amber-200/70">
+                        {step}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <GitBranch size={20} className="text-rose-500" />
+                    DevOps CI/CD Pipeline
+                  </h2>
+                  <div className="space-y-2">
+                    {archDesign?.design.devops_pipeline.map((step, i) => (
+                      <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                        <div className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center text-[10px] font-bold">{i+1}</div>
+                        <span className="text-sm">{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+                  <h3 className="font-bold mb-4 text-emerald-500">Security & Scalability</h3>
+                  <ul className="text-sm text-zinc-400 space-y-2 list-disc list-inside">
+                    <li>IAM-based granular access control for all GCP services.</li>
+                    <li>VPC Service Controls for data exfiltration prevention.</li>
+                    <li>Horizontal Pod Autoscaling (HPA) in GKE based on custom AI metrics.</li>
+                    <li>Global Load Balancing with Cloud Armor for DDoS protection.</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Terminal size={20} className="text-amber-500" />
+                    GitHub Repository Structure
+                  </h2>
+                  <div className="space-y-2">
+                    {archDesign?.design.folder_structure.map((item, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10 font-mono text-xs text-zinc-400">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Zap size={20} className="text-cyan-500" />
+                    Future Roadmap (v5.0)
+                  </h2>
+                  <div className="space-y-2">
+                    {archDesign?.design.future_v5.map((item, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10 text-sm text-cyan-200/70">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </section>
               </div>
             </motion.div>
           )}
@@ -411,6 +589,34 @@ export default function App() {
     </div>
   );
 }
+
+function MetricCard({ label, value, icon, color = "text-zinc-400" }: { label: string, value: string, icon: React.ReactNode, color?: string }) {
+  return (
+    <div className="bg-[#121214] border border-white/5 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <div className={color}>{icon}</div>
+        <span className="text-[10px] text-zinc-500 uppercase font-mono">{label}</span>
+      </div>
+      <div className="text-xl font-bold tracking-tight">{value}</div>
+    </div>
+  );
+}
+
+function LoopStep({ icon, label, description }: { icon: React.ReactNode, label: string, description: string }) {
+  return (
+    <div className="flex flex-col items-center text-center space-y-3 z-10 bg-[#121214] p-4 rounded-2xl border border-white/5 w-full md:w-48">
+      <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
+        {icon}
+      </div>
+      <div>
+        <h4 className="font-bold text-sm">{label}</h4>
+        <p className="text-[10px] text-zinc-500 mt-1">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+
 
 function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) {
   return (

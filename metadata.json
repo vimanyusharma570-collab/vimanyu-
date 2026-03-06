@@ -1,5 +1,5 @@
 {
-  "name": "Nexus AI Architecture",
-  "description": "A high-performance dashboard visualizing and managing a multi-layer AI system architecture, featuring real-time Gemini integration and SQLite data persistence.",
+  "name": "Nexus AI v4.1 - Neural Core",
+  "description": "An advanced AI platform architecture dashboard featuring Version 4.1 Neural Core integration, Agentic AI, and real-time telemetry.",
   "requestFramePermissions": []
 }
